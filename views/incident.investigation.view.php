@@ -44,11 +44,6 @@ $html_page = (new CHtmlPage())
 		(new CTag('nav', true,
 			(new CList())
 				->addItem(
-					(new CButton('export_report', _('Export report')))
-						->addClass(ZBX_STYLE_BTN_ALT)
-						->setAttribute('onclick', "window.print(); return false;")
-				)
-				->addItem(
 					(new CButton('back_problems', _('Back to Problems')))
 						->setAttribute('onclick', "location.href='zabbix.php?action=problem.view'")
 				)

@@ -23,7 +23,6 @@ A Zabbix module providing detailed incident investigation with temporal patterns
 - **Timeline and Actions**: toggle between event list and actions table (alerts, commands, status) using native Zabbix layout
 - **Recommendations**: highest-risk hours and days for planning
 - **Quick comparison**: "Same slot last week" and "Same day last week" when filters are applied
-- **Export**: report exportable via print/PDF
 - **Direct access**: magnifying glass icon (🔍) on the problem list and problem widgets that opens investigation for that event
 - **Maintenance integration**: visualization of maintenance periods and their correlation with incidents (see [Maintenance integration](#maintenance-integration) below)
 
@@ -57,7 +56,7 @@ The module displays Zabbix maintenances in the investigation views to help corre
 - PHP 8.0+
 - Zabbix with Services and SLA configured (optional, for SLA impact panel)
 
-If the module does not work on your Zabbix version, please open an [issue]([https://github.com/YOUR-USERNAME/timepattern-incident-investigation/issues](https://github.com/Monzphere/TimePattern/issues)) on GitHub.
+If the module does not work on your Zabbix version, please open an [issue](https://github.com/Monzphere/IncidentInvestigation/issues) on GitHub.
 
 ---
 
@@ -75,14 +74,14 @@ git clone https://github.com/Monzphere/IncidentInvestigation.git
 Copy the module folder to Zabbix's modules directory:
 
 ```bash
-cp -r TimePattern /usr/share/zabbix/modules/IncidentInvestigation
+cp -r IncidentInvestigation /usr/share/zabbix/modules/
 ```
 
 If the `modules` directory does not exist, create it:
 
 ```bash
 mkdir -p /usr/share/zabbix/modules
-cp -r TimePattern /usr/share/zabbix/modules/IncidentInvestigation
+cp -r IncidentInvestigation /usr/share/zabbix/modules/
 ```
 
 ### 3. Enable the module in Zabbix

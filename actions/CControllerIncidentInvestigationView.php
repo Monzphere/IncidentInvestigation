@@ -395,7 +395,7 @@ class CControllerIncidentInvestigationView extends CController {
 		}
 		$groupids = array_column($host['hostgroups'] ?? [], 'groupid');
 		$base = [
-			'output' => ['maintenanceid', 'name', 'description', 'active_since', 'active_till'],
+			'output' => ['maintenanceid', 'name', 'active_since', 'active_till'],
 			'selectTimeperiods' => ['timeperiod_type', 'period', 'start_date', 'start_time', 'every', 'day', 'dayofweek', 'month'],
 			'preservekeys' => true
 		];
@@ -418,13 +418,11 @@ class CControllerIncidentInvestigationView extends CController {
 				continue;
 			}
 			$name = $m['name'] ?? _('Maintenance');
-			$description = $m['description'] ?? '';
 			$segments = $this->expandMaintenanceTimeperiods($m, $since, $till, max($since, $time_from), min($till, $time_to));
 			foreach ($segments as [$seg_since, $seg_till]) {
 				if ($seg_till >= $time_from && $seg_since <= $time_to) {
 					$result[] = [
 						'name' => $name,
-						'description' => $description,
 						'active_since' => (int) $seg_since,
 						'active_till' => (int) $seg_till
 					];

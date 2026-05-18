@@ -7,6 +7,16 @@ jQuery(document).ready(function() {
 	var d = window.mnzInvestigationData;
 	if (!d) return;
 
+	function escHtml(s) {
+		if (s == null) return "";
+		return String(s)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#39;");
+	}
+
 	var clocks = (d.eventClocks || []).map(function(t) { return parseInt(t, 10); }).filter(function(t) { return !isNaN(t); });
 	var monthKeys = d.monthKeys || [];
 	var isDark = document.body.getAttribute("theme") === "dark-theme" || document.documentElement.getAttribute("theme") === "dark-theme";
@@ -57,9 +67,9 @@ jQuery(document).ready(function() {
 		for (var i = 0; i < data.length; i++) {
 			var h = (data[i] / max) * 80;
 			var cls = clickable && data[i] > 0 ? " mnz-bar-clickable" : "";
-			var idx = clickable ? ' data-index="' + i + '" data-type="' + dataType + '"' : "";
-			var comp = ""; if (avg > 0 && data[i] > avg * 1.2) { var mult = (data[i] / avg).toFixed(1); comp = ' <span class="mnz-bar-compare">' + mult + timesStr + '</span>'; }
-			html += '<div class="mnz-investigation-bar-item' + cls + '"' + idx + ' title="' + labels[i] + ': ' + data[i] + '"><div class="mnz-investigation-bar" style="height:' + Math.max(h, 4) + 'px;background:' + (data[i] > 0 ? color : barBg) + '"></div><span class="mnz-investigation-bar-label">' + labels[i] + comp + '</span></div>';
+			var idx = clickable ? ' data-index="' + i + '" data-type="' + escHtml(dataType) + '"' : "";
+			var comp = ""; if (avg > 0 && data[i] > avg * 1.2) { var mult = (data[i] / avg).toFixed(1); comp = ' <span class="mnz-bar-compare">' + escHtml(mult + timesStr) + '</span>'; }
+			html += '<div class="mnz-investigation-bar-item' + cls + '"' + idx + ' title="' + escHtml(labels[i] + ': ' + data[i]) + '"><div class="mnz-investigation-bar" style="height:' + Math.max(h, 4) + 'px;background:' + (data[i] > 0 ? color : barBg) + '"></div><span class="mnz-investigation-bar-label">' + escHtml(labels[i]) + comp + '</span></div>';
 		}
 		html += '</div>'; el.innerHTML = html;
 	}
@@ -80,9 +90,10 @@ jQuery(document).ready(function() {
 				var col = intensity > 0 ? (intensity > 0.5 ? (intensity > 0.8 ? "#c0392b" : "#e67e22") : "#27ae60") : barBg;
 				var cls = v > 0 ? " mnz-heatmap-cell-active" : "";
 				var key = w + "-" + h; var isMaint = maintCells[key];
-				var maintIcon = isMaint ? '<span class="mnz-heatmap-maint-icon ' + (d.maintIconClass || "zi zi-wrench-alt-small") + '" aria-hidden="true"></span>' : '';
-				var maintTip = isMaint ? " | " + (d.legendMaintenanceBorder || "Maintenance") + ": " + (Array.isArray(isMaint) ? isMaint.join(", ") : isMaint) : "";
-				html += '<div class="mnz-heatmap-cell' + cls + '" data-w="' + w + '" data-h="' + h + '" style="background:' + col + '" title="' + (d.weekLabels[w] || "") + ' ' + (d.hourLabels[h] || h) + ': ' + v + maintTip + '"><span class="mnz-heatmap-cell-val">' + v + '</span>' + maintIcon + '</div>';
+				var maintIcon = isMaint ? '<span class="mnz-heatmap-maint-icon ' + escHtml(d.maintIconClass || "zi zi-wrench-alt-small") + '" aria-hidden="true"></span>' : '';
+				var maintTipRaw = isMaint ? " | " + (d.legendMaintenanceBorder || "Maintenance") + ": " + (Array.isArray(isMaint) ? isMaint.join(", ") : isMaint) : "";
+				var titleRaw = (d.weekLabels[w] || "") + ' ' + (d.hourLabels[h] || h) + ': ' + v + maintTipRaw;
+				html += '<div class="mnz-heatmap-cell' + cls + '" data-w="' + w + '" data-h="' + h + '" style="background:' + col + '" title="' + escHtml(titleRaw) + '"><span class="mnz-heatmap-cell-val">' + v + '</span>' + maintIcon + '</div>';
 			}
 			html += '</div>';
 		}
@@ -94,7 +105,7 @@ jQuery(document).ready(function() {
 			if (existing) existing.remove();
 			var maintLeg = document.createElement("div");
 			maintLeg.className = "mnz-heatmap-legend-maint";
-			maintLeg.innerHTML = '<span class="mnz-heatmap-legend-maint-sample ' + (d.maintIconClass || "zi zi-wrench-alt-small") + '"></span><span class="mnz-heatmap-legend-maint-label">' + (d.legendMaintenanceBorder || "Icon = incident during maintenance") + '</span>';
+			maintLeg.innerHTML = '<span class="mnz-heatmap-legend-maint-sample ' + escHtml(d.maintIconClass || "zi zi-wrench-alt-small") + '"></span><span class="mnz-heatmap-legend-maint-label">' + escHtml(d.legendMaintenanceBorder || "Icon = incident during maintenance") + '</span>';
 			legEl.appendChild(maintLeg);
 		}
 		jQuery("#mnz-investigation-heatmap").off("click", ".mnz-heatmap-cell-active").on("click", ".mnz-heatmap-cell-active", function() {
@@ -215,31 +226,30 @@ jQuery(document).ready(function() {
 			var maintList = monthHadMaintenance(mk);
 			var maintTooltip = maintList ? " " + (d.tooltipMaintenances || "Maintenances") + ": " + maintList.map(function(m) { return m.name + " (" + m.range + ")"; }).join(", ") + "." : "";
 			var title = labels[i] + ": " + data[i] + " " + (d.tooltipIncidents || "incidents") + maintTooltip;
-			var safeTitle = (title || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 			var stripHtml = "";
 			var hadMaint = maintList && maintList.length > 0;
 			stripHtml = '<div class="mnz-month-maint-indicator">';
-			var maintData = hadMaint ? JSON.stringify(maintList).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") : "";
+			var maintData = hadMaint ? escHtml(JSON.stringify(maintList)) : "";
 			var maintCount = hadMaint ? maintList.length : 0;
 			stripHtml += '<span class="mnz-month-maint-bar' + (hadMaint ? " mnz-maint-day-active mnz-maint-clickable" : "") + '"' + (maintData ? ' data-maints="' + maintData + '"' : '') + '>' + (maintCount > 0 ? maintCount : '') + '</span>';
 			stripHtml += '</div>';
-			html += '<div class="mnz-investigation-monthly-item' + cls + '" data-index="' + i + '" data-type="monthly" title="' + safeTitle + '"><div class="mnz-monthly-item-header"><span class="mnz-monthly-value">' + data[i] + '</span>' + comp + '</div><div class="mnz-investigation-monthly-bar" style="height:' + Math.max(h, 4) + 'px;background:' + col + '"></div>' + stripHtml + '<span class="mnz-investigation-monthly-label" style="color:' + lc + '">' + labels[i] + '</span></div>';
+			html += '<div class="mnz-investigation-monthly-item' + cls + '" data-index="' + i + '" data-type="monthly" title="' + escHtml(title) + '"><div class="mnz-monthly-item-header"><span class="mnz-monthly-value">' + data[i] + '</span>' + comp + '</div><div class="mnz-investigation-monthly-bar" style="height:' + Math.max(h, 4) + 'px;background:' + col + '"></div>' + stripHtml + '<span class="mnz-investigation-monthly-label" style="color:' + lc + '">' + escHtml(labels[i]) + '</span></div>';
 		}
 		html += '</div>';
-		html += '<div class="mnz-drilldown-maint-legend">' + (d.legendMaintenanceBar || d.legendMaintenanceBorder || "Orange bar = maintenance period") + '</div>';
+		html += '<div class="mnz-drilldown-maint-legend">' + escHtml(d.legendMaintenanceBar || d.legendMaintenanceBorder || "Orange bar = maintenance period") + '</div>';
 		el.innerHTML = html;
 	}
 
 	function renderDrilldown(containerId, data, labels, title, barColor, isDayDrilldown, monthKey) {
 		var c = document.getElementById(containerId); if (!c) return;
 		var max = Math.max.apply(Math, data); if (max === 0) max = 1;
-		var hintDay = (isDayDrilldown && d.hintDay) ? '<div class="mnz-drilldown-subhint">' + d.hintDay + '</div>' : "";
-		var html = '<div class="mnz-drilldown-content"><div class="mnz-drilldown-title">' + title + '</div>' + hintDay + '<div class="mnz-drilldown-chart"><div class="mnz-investigation-bars mnz-drilldown-daily-bars">';
+		var hintDay = (isDayDrilldown && d.hintDay) ? '<div class="mnz-drilldown-subhint">' + escHtml(d.hintDay) + '</div>' : "";
+		var html = '<div class="mnz-drilldown-content"><div class="mnz-drilldown-title">' + escHtml(title) + '</div>' + hintDay + '<div class="mnz-drilldown-chart"><div class="mnz-investigation-bars mnz-drilldown-daily-bars">';
 		for (var i = 0; i < data.length; i++) {
 			var h = (data[i] / max) * 80; var day = i + 1;
 			var cls = (isDayDrilldown && data[i] > 0) ? " mnz-drilldown-day-bar mnz-bar-clickable" : ""; var dday = (isDayDrilldown && data[i] > 0) ? ' data-day="' + day + '"' : "";
 			var valSpan = '<span class="mnz-drilldown-bar-value">' + data[i] + '</span>';
-			html += '<div class="mnz-investigation-bar-item mnz-drilldown-bar-item' + cls + '"' + dday + ' title="' + labels[i] + ': ' + data[i] + '">' + valSpan + '<div class="mnz-investigation-bar" style="height:' + Math.max(h, 4) + 'px;background:' + (data[i] > 0 ? barColor : barBg) + '"></div><span class="mnz-investigation-bar-label">' + labels[i] + '</span></div>';
+			html += '<div class="mnz-investigation-bar-item mnz-drilldown-bar-item' + cls + '"' + dday + ' title="' + escHtml(labels[i] + ': ' + data[i]) + '">' + valSpan + '<div class="mnz-investigation-bar" style="height:' + Math.max(h, 4) + 'px;background:' + (data[i] > 0 ? barColor : barBg) + '"></div><span class="mnz-investigation-bar-label">' + escHtml(labels[i]) + '</span></div>';
 		}
 		html += '</div>';
 		if (monthKey && isDayDrilldown) {
@@ -251,21 +261,21 @@ jQuery(document).ready(function() {
 				if (parts.length >= 2) { var y = parseInt(parts[0], 10), mo = parseInt(parts[1], 10) - 1; daysInMonth = new Date(y, mo + 1, 0).getDate(); }
 				for (var dNum = 1; dNum <= daysInMonth; dNum++) {
 					var dayMaints = maintDays[dNum] ? getDayMaintenances(monthKey, dNum) : [];
-					var dayMaintData = dayMaints.length > 0 ? JSON.stringify(dayMaints).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") : "";
+					var dayMaintData = dayMaints.length > 0 ? escHtml(JSON.stringify(dayMaints)) : "";
 					var dayMaintCount = dayMaints.length;
 					stripHtml += '<span class="mnz-drilldown-maint-day' + (maintDays[dNum] ? " mnz-maint-day-active mnz-maint-clickable" : "") + '" data-day="' + dNum + '"' + (dayMaintData ? ' data-maints="' + dayMaintData + '"' : '') + '>' + (dayMaintCount > 0 ? dayMaintCount : '') + '</span>';
 				}
-				stripHtml += '</div><div class="mnz-drilldown-maint-legend">' + (d.legendMaintenanceBar || d.legendMaintenanceBorder || "Orange bar = maintenance period") + '</div>';
+				stripHtml += '</div><div class="mnz-drilldown-maint-legend">' + escHtml(d.legendMaintenanceBar || d.legendMaintenanceBorder || "Orange bar = maintenance period") + '</div>';
 				html += stripHtml;
 			}
 		}
-		html += '</div><button type="button" class="btn btn-alt mnz-drilldown-close">' + (d.close || "Close") + '</button></div>';
+		html += '</div><button type="button" class="btn btn-alt mnz-drilldown-close">' + escHtml(d.close || "Close") + '</button></div>';
 		c.innerHTML = html; c.classList.add("mnz-drilldown-visible");
 	}
 
 	function setupCloseHandler(containerId, hint, hintClass) {
 		hintClass = hintClass || "";
-		jQuery("#" + containerId + " .mnz-drilldown-close").off("click").on("click", function() { var c = jQuery("#" + containerId); c.removeClass("mnz-drilldown-visible").empty(); c.append('<div class="mnz-drilldown-hint ' + hintClass + '">' + hint + '</div>'); });
+		jQuery("#" + containerId + " .mnz-drilldown-close").off("click").on("click", function() { var c = jQuery("#" + containerId); c.removeClass("mnz-drilldown-visible").empty(); c.append('<div class="mnz-drilldown-hint ' + escHtml(hintClass) + '">' + escHtml(hint) + '</div>'); });
 	}
 
 	function showMaintTooltip(target, maints) {
@@ -279,10 +289,10 @@ jQuery(document).ready(function() {
 			appendTo.appendChild(pop);
 			jQuery(document).on("keydown.mnzMaintTooltip", function(e) { if (e.key === "Escape") closeMaintTooltip(); });
 		}
-		var items = maints.map(function(m) { return (m.name || "") + " (" + (m.range || "") + ")"; }).join("<br>");
+		var items = maints.map(function(m) { return escHtml((m.name || "") + " (" + (m.range || "") + ")"); }).join("<br>");
 		var closeClass = d.btnOverlayCloseClass || "btn-overlay-close";
 		var closeTitle = d.close || "Close";
-		pop.innerHTML = '<button type="button" class="' + closeClass + '" title="' + closeTitle.replace(/"/g, "&quot;") + '"></button><div class="hintbox-wrap">' + items + '</div>';
+		pop.innerHTML = '<button type="button" class="' + escHtml(closeClass) + '" title="' + escHtml(closeTitle) + '"></button><div class="hintbox-wrap">' + items + '</div>';
 		jQuery(pop).find("." + closeClass).off("click").on("click", closeMaintTooltip);
 		pop.classList.add("mnz-maint-tooltip-visible");
 		pop.style.display = "block";
@@ -332,10 +342,10 @@ jQuery(document).ready(function() {
 		else if (currentFilter.type === "weekday") lbl = (d.weekLabels || [])[currentFilter.value] || "";
 		else if (currentFilter.type === "month") lbl = (d.monthLabels || [])[currentFilter.value] || "";
 		else if (currentFilter.type === "day") lbl = (currentFilter.dateStr || "") + " (" + ((d.weekLabels || [])[currentFilter.weekday] || "") + ")";
-		else if (currentFilter.type === "heatmap") { lbl = (d.weekLabels || [])[currentFilter.weekday] + " " + ((d.hourLabels || [])[currentFilter.hour] || currentFilter.hour + "h"); var lastWeek = countSameSlotLastWeek(currentFilter.weekday, currentFilter.hour); compHtml = ' <span class="mnz-filter-comparison">' + (d.sameSlotLastWeek || "") + ': ' + lastWeek + ' ' + (d.incidents || "incidents") + '</span>'; }
-		else if (currentFilter.type === "day" && currentFilter.weekday != null) { var lastWeek = countSameDayLastWeek(currentFilter.weekday); compHtml = ' <span class="mnz-filter-comparison">' + (d.sameDayLastWeek || "") + ': ' + lastWeek + ' ' + (d.incidents || "incidents") + '</span>'; }
+		else if (currentFilter.type === "heatmap") { lbl = (d.weekLabels || [])[currentFilter.weekday] + " " + ((d.hourLabels || [])[currentFilter.hour] || currentFilter.hour + "h"); var lastWeek = countSameSlotLastWeek(currentFilter.weekday, currentFilter.hour); compHtml = ' <span class="mnz-filter-comparison">' + escHtml(d.sameSlotLastWeek || "") + ': ' + lastWeek + ' ' + escHtml(d.incidents || "incidents") + '</span>'; }
+		else if (currentFilter.type === "day" && currentFilter.weekday != null) { var lastWeek = countSameDayLastWeek(currentFilter.weekday); compHtml = ' <span class="mnz-filter-comparison">' + escHtml(d.sameDayLastWeek || "") + ': ' + lastWeek + ' ' + escHtml(d.incidents || "incidents") + '</span>'; }
 		fb.classList.add("mnz-filter-active");
-		fb.innerHTML = '<span class="mnz-filter-label">' + (d.filteredBy || "") + ': ' + lbl + '</span>' + compHtml + ' <button type="button" class="btn btn-alt mnz-filter-clear">' + (d.clearFilter || "") + '</button>';
+		fb.innerHTML = '<span class="mnz-filter-label">' + escHtml(d.filteredBy || "") + ': ' + escHtml(lbl) + '</span>' + compHtml + ' <button type="button" class="btn btn-alt mnz-filter-clear">' + escHtml(d.clearFilter || "") + '</button>';
 		jQuery("#mnz-investigation-filter-bar .mnz-filter-clear").off("click").on("click", function() { currentFilter = null; currentAgg = computeAggregates(clocks); var m = jQuery("#mnz-monthly-drilldown"); m.removeClass("mnz-drilldown-visible").empty().append('<div class="mnz-drilldown-hint mnz-drilldown-hint-monthly">' + (d.hintMonth || "") + '</div>'); applyAndRender(); updateFilterBar(); });
 	}
 
@@ -438,31 +448,31 @@ jQuery(document).ready(function() {
 		var t1 = document.createElementNS(ns, "text"); t1.setAttribute("x", 50); t1.setAttribute("y", 54); t1.setAttribute("text-anchor", "middle"); t1.classList.add("mnz-sli-donut-value-text"); t1.style.setProperty("fill", fillColor, "important"); t1.setAttribute("font-size", "13"); t1.setAttribute("font-weight", "bold"); t1.textContent = (val != null ? val.toFixed(1) : "-") + " %"; svg.appendChild(t1);
 		box.appendChild(svg);
 		var desc = document.createElement("div"); desc.className = "mnz-sli-donut-desc"; desc.style.cssText = "text-align:center;"; desc.textContent = (d.currentSLI || "Current SLI") + " (SLO " + sloNum.toFixed(1) + "%)"; box.appendChild(desc);
-		if (mnzSlaData) { var treeBtn = document.createElement("button"); treeBtn.type = "button"; treeBtn.className = "btn btn-icon mnz-sla-tree-btn"; treeBtn.title = (d.viewServiceTree || "View service tree with SLI"); treeBtn.innerHTML = '<span class="' + (d.iconClass || "icon-pointer") + '"></span>'; treeBtn.onclick = function(e) { e.preventDefault(); openSLATreeModal(); }; box.appendChild(treeBtn); }
+		if (mnzSlaData) { var treeBtn = document.createElement("button"); treeBtn.type = "button"; treeBtn.className = "btn btn-icon mnz-sla-tree-btn"; treeBtn.title = (d.viewServiceTree || "View service tree with SLI"); treeBtn.innerHTML = '<span class="' + escHtml(d.iconClass || "icon-pointer") + '"></span>'; treeBtn.onclick = function(e) { e.preventDefault(); openSLATreeModal(); }; box.appendChild(treeBtn); }
 	}
 
 	var mnzSlaData = null; var mnzSlaMode = "0";
 
 	function loadSLAbyService(hostid) {
 		var el = document.getElementById("mnz-sla-service-container"); var gw = document.getElementById("mnz-sla-gauge-wrap"); var sel = document.getElementById("mnz-sla-mode-selector"); if (!el) return;
-		el.innerHTML = '<div class="mnz-sla-loading"><span>' + (d.loadingServices || "Loading services...") + '</span></div>'; if (gw) gw.innerHTML = ""; if (sel) sel.innerHTML = ""; mnzSlaData = null; closeSLATreeModal();
+		el.innerHTML = '<div class="mnz-sla-loading"><span>' + escHtml(d.loadingServices || "Loading services...") + '</span></div>'; if (gw) gw.innerHTML = ""; if (sel) sel.innerHTML = ""; mnzSlaData = null; closeSLATreeModal();
 		var fd = new FormData(); fd.append("hostid", hostid);
 		fetch("zabbix.php?action=incident.serviceimpact", { method: "POST", body: fd })
 			.then(function(r) { return r.json(); })
 			.then(function(res) {
-				if (!res.success) { el.innerHTML = '<div class="mnz-sla-error">' + (res.error && res.error.message ? res.error.message : "Error") + '</div>'; if (gw) gw.innerHTML = ""; return; }
+				if (!res.success) { el.innerHTML = '<div class="mnz-sla-error">' + escHtml(res.error && res.error.message ? res.error.message : "Error") + '</div>'; if (gw) gw.innerHTML = ""; return; }
 				var data = res.data;
-				if (!data.service_trees || data.service_trees.length === 0) { el.innerHTML = '<div class="mnz-sla-empty">' + (d.noServicesAffected || "No services affected by this incident") + '</div>'; renderSLIGauge(null); return; }
+				if (!data.service_trees || data.service_trees.length === 0) { el.innerHTML = '<div class="mnz-sla-empty">' + escHtml(d.noServicesAffected || "No services affected by this incident") + '</div>'; renderSLIGauge(null); return; }
 				mnzSlaData = data; var services = collectServicesWithSLA(data); var slo = collectSLO(data);
 				if (sel && services.length >= 2) {
-					var html = '<select class="mnz-sla-mode-select" title="' + (d.view || "View") + '">';
-					for (var i = 0; i < services.length; i++) html += '<option value="' + i + '">' + (services[i].name || ((d.service || "Service") + " " + (i + 1))) + " (" + services[i].sli.toFixed(1) + "%)</option>";
+					var html = '<select class="mnz-sla-mode-select" title="' + escHtml(d.view || "View") + '">';
+					for (var i = 0; i < services.length; i++) html += '<option value="' + i + '">' + escHtml((services[i].name || ((d.service || "Service") + " " + (i + 1))) + " (" + services[i].sli.toFixed(1) + "%)") + '</option>';
 					html += '</select>'; sel.innerHTML = html; sel.classList.add("mnz-sla-mode-selector-visible");
 					jQuery(sel).off("change").on("change", function() { mnzSlaMode = jQuery(this).val(); updateSLIGaugeFromMode(); });
 				} else if (sel) { sel.innerHTML = ""; sel.classList.remove("mnz-sla-mode-selector-visible"); }
 				mnzSlaMode = services.length > 0 ? "0" : "min"; updateSLIGaugeFromMode(); el.innerHTML = "";
 			})
-			.catch(function() { el.innerHTML = '<div class="mnz-sla-error">' + (d.failedToLoadServiceImpact || "Failed to load service impact") + '</div>'; if (gw) gw.innerHTML = ""; });
+			.catch(function() { el.innerHTML = '<div class="mnz-sla-error">' + escHtml(d.failedToLoadServiceImpact || "Failed to load service impact") + '</div>'; if (gw) gw.innerHTML = ""; });
 	}
 
 	function updateSLIGaugeFromMode() {
@@ -477,7 +487,7 @@ jQuery(document).ready(function() {
 		var services = collectServicesWithSLA(mnzSlaData); var slo = collectSLO(mnzSlaData);
 		var sel = document.getElementById("mnz-sla-mode-selector"); if (sel && sel.querySelector("select")) mnzSlaMode = sel.querySelector("select").value;
 		var body = renderSLATreeForModal(mnzSlaData, slo, mnzSlaMode, services);
-		m.innerHTML = '<div class="mnz-sla-modal-backdrop"></div><div class="mnz-sla-modal-dialog"><div class="mnz-sla-modal-header"><h4>' + (d.serviceTreeAndSLI || "Service tree and SLI") + '</h4><button type="button" class="btn ' + (d.btnOverlayCloseClass || "overlay-close-btn") + ' mnz-sla-modal-close" aria-label="' + (d.close || "Close") + '"></button></div><div class="mnz-sla-modal-body">' + body + '</div></div>';
+		m.innerHTML = '<div class="mnz-sla-modal-backdrop"></div><div class="mnz-sla-modal-dialog"><div class="mnz-sla-modal-header"><h4>' + escHtml(d.serviceTreeAndSLI || "Service tree and SLI") + '</h4><button type="button" class="btn ' + escHtml(d.btnOverlayCloseClass || "overlay-close-btn") + ' mnz-sla-modal-close" aria-label="' + escHtml(d.close || "Close") + '"></button></div><div class="mnz-sla-modal-body">' + body + '</div></div>';
 		m.classList.add("mnz-sla-modal-visible"); m.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
 		jQuery(m).off("click.mnzSlaTree").on("click.mnzSlaTree", ".mnz-sla-modal-backdrop, .mnz-sla-modal-close", closeSLATreeModal);
 		jQuery(document).off("keydown.mnzSlaTree").on("keydown.mnzSlaTree", function(e) { if (e.key === "Escape") closeSLATreeModal(); });
@@ -493,17 +503,18 @@ jQuery(document).ready(function() {
 		mode = mode || "0"; services = services || collectServicesWithSLA(data);
 		var sloThresh = (slo != null && !isNaN(slo)) ? parseFloat(slo) : 99.9;
 		var sloLow = (slo != null && !isNaN(slo)) ? Math.max(0, parseFloat(slo) - 5) : 0;
-		function extraBadge(val, type) { var s, n, cl = "mnz-sla-extra-na"; if (!val || val === "-") return '<span class="mnz-sla-extra-badge mnz-sla-extra-na">-</span>'; s = String(val); if (type === "uptime") cl = "mnz-sla-extra-uptime"; else if (type === "downtime") cl = (s === "0s") ? "mnz-sla-extra-downtime-ok" : "mnz-sla-extra-downtime-bad"; else if (type === "errbudget") cl = (s.indexOf("-") === 0) ? "mnz-sla-extra-errbudget-bad" : "mnz-sla-extra-errbudget-ok"; return '<span class="mnz-sla-extra-badge ' + cl + '">' + s + '</span>'; }
-		var html = '<div class="mnz-sla-tree-compact"><table class="mnz-sla-tree-table mnz-sla-tree-table-modal"><thead><tr><th>' + (d.service || "Service") + '</th><th>' + (d.sli || "SLI") + '</th><th>' + (d.uptime || "Uptime") + '</th><th>' + (d.downtime || "Downtime") + '</th><th>' + (d.errorBudget || "Error budget") + '</th></tr></thead><tbody>';
+		function extraBadge(val, type) { var s, cl = "mnz-sla-extra-na"; if (!val || val === "-") return '<span class="mnz-sla-extra-badge mnz-sla-extra-na">-</span>'; s = String(val); if (type === "uptime") cl = "mnz-sla-extra-uptime"; else if (type === "downtime") cl = (s === "0s") ? "mnz-sla-extra-downtime-ok" : "mnz-sla-extra-downtime-bad"; else if (type === "errbudget") cl = (s.indexOf("-") === 0) ? "mnz-sla-extra-errbudget-bad" : "mnz-sla-extra-errbudget-ok"; return '<span class="mnz-sla-extra-badge ' + cl + '">' + escHtml(s) + '</span>'; }
+		var html = '<div class="mnz-sla-tree-compact"><table class="mnz-sla-tree-table mnz-sla-tree-table-modal"><thead><tr><th>' + escHtml(d.service || "Service") + '</th><th>' + escHtml(d.sli || "SLI") + '</th><th>' + escHtml(d.uptime || "Uptime") + '</th><th>' + escHtml(d.downtime || "Downtime") + '</th><th>' + escHtml(d.errorBudget || "Error budget") + '</th></tr></thead><tbody>';
 		function addRow(service, level) {
 			var lvl = level || 0; var pad = lvl * 16; var padStyle = ' style="padding-left:' + (8 + pad) + 'px"'; var prefix = lvl > 0 ? '<span class="mnz-sla-tree-prefix">↳ </span>' : '';
-			var sliCell = ''; if (service.has_sla && service.sli != null) { var v = parseFloat(service.sli).toFixed(1) + "%"; var sliVal = parseFloat(service.sli); var cl = sliVal >= sloThresh ? "mnz-sli-ok" : (sliVal >= sloLow ? "mnz-sli-warn" : "mnz-sli-bad"); sliCell = '<span class="mnz-sli-badge mnz-sli-badge-sm ' + cl + '">' + v + '</span>'; }
+			var sliCell = ''; if (service.has_sla && service.sli != null) { var v = parseFloat(service.sli).toFixed(1) + "%"; var sliVal = parseFloat(service.sli); var cl = sliVal >= sloThresh ? "mnz-sli-ok" : (sliVal >= sloLow ? "mnz-sli-warn" : "mnz-sli-bad"); sliCell = '<span class="mnz-sli-badge mnz-sli-badge-sm ' + cl + '">' + escHtml(v) + '</span>'; }
 			var uptime = (service.uptime != null && service.uptime !== "") ? String(service.uptime) : null;
 			var downtime = (service.downtime != null && service.downtime !== "") ? String(service.downtime) : null;
 			var errBudget = (service.error_budget != null && service.error_budget !== "") ? String(service.error_budget) : null;
-			var name = String(service.name || "").replace(/</g, "&lt;");
-			var title = name; if (service.inherited_from_name) title += " (" + (d.inheritedFrom || "inherited from") + " " + String(service.inherited_from_name).replace(/</g, "&lt;") + ")";
-			html += '<tr><td class="mnz-sla-tree-cell-name"' + padStyle + ' title="' + title + '">' + prefix + name + '</td><td class="mnz-sla-tree-cell-sli">' + sliCell + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(uptime, "uptime") + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(downtime, "downtime") + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(errBudget, "errbudget") + '</td></tr>';
+			var rawName = String(service.name || "");
+			var titleRaw = rawName;
+			if (service.inherited_from_name) titleRaw += " (" + (d.inheritedFrom || "inherited from") + " " + String(service.inherited_from_name) + ")";
+			html += '<tr><td class="mnz-sla-tree-cell-name"' + padStyle + ' title="' + escHtml(titleRaw) + '">' + prefix + escHtml(rawName) + '</td><td class="mnz-sla-tree-cell-sli">' + sliCell + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(uptime, "uptime") + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(downtime, "downtime") + '</td><td class="mnz-sla-tree-cell-extra">' + extraBadge(errBudget, "errbudget") + '</td></tr>';
 			if (service.children && service.children.length) for (var i = 0; i < service.children.length; i++) addRow(service.children[i], (level || 0) + 1);
 		}
 		var treeIndices = [];

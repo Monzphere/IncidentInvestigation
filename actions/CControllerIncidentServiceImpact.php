@@ -4,6 +4,7 @@ namespace Modules\IncidentInvestigation\Actions;
 
 use API;
 use CController;
+use CRoleHelper;
 use Exception;
 
 class CControllerIncidentServiceImpact extends CController {
@@ -16,7 +17,7 @@ class CControllerIncidentServiceImpact extends CController {
 	}
 
 	protected function checkPermissions(): bool {
-		return $this->getUserType() >= USER_TYPE_ZABBIX_USER;
+		return $this->checkAccess(CRoleHelper::UI_MONITORING_PROBLEMS);
 	}
 
 	protected function checkInput(): bool {
